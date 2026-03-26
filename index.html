@@ -15,7 +15,7 @@
     --heading-font:'Audiowide',sans-serif;
   }
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  html{scroll-behavior:smooth;}
+  html{scroll-behavior:auto;}
   body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;line-height:1.6;overflow-x:hidden;}
   body.light{
     --bg:#f4f7fb; --bg2:#eaf0f7; --mint:#008f68; --amber:#cc7a00;
@@ -48,6 +48,8 @@
   body.light nav{background:rgba(255,255,255,.96);}
   body.light .theme-toggle{border-color:rgba(0,0,0,.14);background:rgba(15,27,40,.03);}
   body.light .ctopbar{background:#edf2f8;}
+  #smooth-wrapper{position:relative;overflow:hidden;}
+  #smooth-content{will-change:transform;}
   body.light .hero-bg-grid{background-image:linear-gradient(rgba(0,122,90,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,122,90,.06) 1px,transparent 1px);}
   body.light .btn-p:hover{background:#0f1b28;color:#f4f7fb;}
   body.light .btn-o{background:#0f1b28;color:#f4f7fb;border-color:#0f1b28;}
@@ -75,7 +77,11 @@
   .hero-content{flex:1;min-width:0;position:relative;z-index:1;max-width:520px;}
   .hero-eyebrow{font-size:.67rem;letter-spacing:.22em;color:var(--mint);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
   .hero-eyebrow::before{content:'';display:block;width:28px;height:1px;background:var(--mint);}
-  .hero-name{font-family:var(--heading-font);font-size:clamp(2.2rem,4.2vw,4.6rem);font-weight:800;line-height:1.0;letter-spacing:-.03em;color:var(--white);margin-bottom:20px;}
+  .hero-name{font-family:var(--heading-font);font-size:clamp(2.2rem,4.2vw,4.6rem);font-weight:800;line-height:1.12;letter-spacing:-.03em;color:var(--white);margin-bottom:20px;}
+  .hero-name .name-line{display:inline-block;vertical-align:bottom;}
+  .hero-name .name-line:first-child{margin-right:.24em;}
+  .hero-name .char-wrap{display:inline-block;overflow:hidden;vertical-align:bottom;perspective:700px;}
+  .hero-name .char{display:inline-block;will-change:transform,opacity,filter;transform-origin:50% 100%;}
   .hero-name .hl{color:var(--mint);}
   .hero-sub{font-size:.8rem;color:var(--dim);line-height:1.95;margin-bottom:26px;}
   .typing-line{font-size:.88rem;color:var(--text);margin-bottom:6px;}
@@ -274,6 +280,9 @@
   </div>
 </nav>
 
+<div id="smooth-wrapper">
+<div id="smooth-content">
+
 <!-- ═══ HERO ═══ -->
 <section id="hero">
   <div class="hero-bg-grid"></div>
@@ -282,7 +291,7 @@
   <!-- LEFT -->
   <div class="hero-content">
     <div class="hero-eyebrow">Senior Frontend Developer</div>
-    <h1 class="hero-name">Siva <span class="hl">Nargana</span></h1>
+    <h1 class="hero-name" id="heroName"><span class="name-line">Siva</span><span class="name-line hl">Nargana</span></h1>
     <p class="hero-sub">Building scalable, pixel-perfect UIs with React &amp; Angular.<br>
     Specialising in admin dashboards, component architecture,<br>
     and performance-optimised interfaces.</p>
@@ -387,7 +396,6 @@
         <div class="exp-years" id="expYears">6+ years impact</div>
       </aside>
       </div>
-    </div>
   </div>
 </section>
 
@@ -462,7 +470,90 @@
   </div>
 </footer>
 
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollToPlugin.min.js"></script>
+<script src="https://assets.codepen.io/16327/ScrollSmoother.min.js"></script>
 <script>
+// ── GSAP SMOOTH SCROLL ──
+if(window.gsap&&window.ScrollToPlugin)window.gsap.registerPlugin(window.ScrollToPlugin);
+if(window.gsap&&window.ScrollTrigger)window.gsap.registerPlugin(window.ScrollTrigger);
+if(window.gsap&&window.ScrollSmoother)window.gsap.registerPlugin(window.ScrollSmoother);
+const prefersReducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const smoother=(window.gsap&&window.ScrollSmoother&&!prefersReducedMotion)
+  ? window.ScrollSmoother.create({wrapper:'#smooth-wrapper',content:'#smooth-content',smooth:1.25,effects:true,normalizeScroll:true,smoothTouch:0.1})
+  : null;
+
+document.querySelectorAll('a[href^="#"]').forEach(link=>{
+  link.addEventListener('click',e=>{
+    const hash=link.getAttribute('href');
+    if(!hash||hash==='#')return;
+    const target=document.querySelector(hash);
+    if(!target)return;
+    e.preventDefault();
+    const nav=document.querySelector('nav');
+    const offsetY=nav?nav.offsetHeight+10:90;
+    const targetY=target.getBoundingClientRect().top+window.scrollY-offsetY;
+    if(smoother){
+      smoother.scrollTo(targetY,true);
+    }else if(!window.gsap||!window.ScrollToPlugin||prefersReducedMotion){
+      window.scrollTo({top:targetY,behavior:'auto'});
+    }else{
+      const distance=Math.abs(targetY-window.scrollY);
+      const duration=window.gsap.utils.clamp(1.05,1.9,distance/720);
+      window.gsap.killTweensOf(window);
+      window.gsap.to(window,{duration,ease:'sine.inOut',overwrite:'auto',scrollTo:{y:targetY,autoKill:false}});
+    }
+    history.replaceState(null,'',hash);
+  });
+});
+
+// ── HERO NAME GSAP ──
+const heroName=document.getElementById('heroName');
+if(heroName){
+  const lines=[...heroName.querySelectorAll('.name-line')];
+  lines.forEach(line=>{
+    const isHighlight=line.classList.contains('hl');
+    const text=line.textContent||'';
+    const frag=document.createDocumentFragment();
+    [...text].forEach(ch=>{
+      const wrap=document.createElement('span');
+      wrap.className='char-wrap';
+      const c=document.createElement('span');
+      c.className='char';
+      if(isHighlight)c.classList.add('hl');
+      c.textContent=ch===' ' ? '\u00a0' : ch;
+      wrap.appendChild(c);
+      frag.appendChild(wrap);
+    });
+    line.textContent='';
+    line.appendChild(frag);
+  });
+  if(window.gsap){
+    const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduceMotion){
+      window.gsap.set(heroName.querySelectorAll('.char'),{opacity:1,yPercent:0,skewY:0,rotationX:0,filter:'blur(0px)'});
+      window.gsap.set(heroName.querySelectorAll('.char-wrap'),{overflow:'visible'});
+    }else{
+      const tl=window.gsap.timeline({
+        delay:.12,
+        onComplete:()=>window.gsap.set(heroName.querySelectorAll('.char-wrap'),{overflow:'visible'})
+      });
+      lines.forEach((line,index)=>{
+        tl.fromTo(
+          line.querySelectorAll('.char'),
+          {yPercent:130,opacity:0,skewY:6,rotationX:-10,filter:'blur(6px)'},
+          {yPercent:0,opacity:1,skewY:0,rotationX:0,filter:'blur(0px)',duration:1.08,ease:'power3.out',stagger:.045},
+          index===0?0:'>-0.18'
+        );
+      });
+    }
+  }
+}
+
 // ── CURSOR ──
 const cDot=document.getElementById('cursor'),cRing=document.getElementById('cursor-ring');
 let mx=0,my=0,rx=0,ry=0;
@@ -634,30 +725,28 @@ requestAnimationFrame(animOrbs);
 
 // ── TYPEWRITER CODE ──
 const lines=[
-  `<span class="ck">import</span> <span class="cv">React</span><span class="cd">, {</span> <span class="cv">useState</span> <span class="cd">}</span> <span class="ck">from</span> <span class="cs">'react'</span><span class="cd">;</span>`,
-  `<span class="ck">import</span> <span class="cd">{</span> <span class="cv">Skills</span> <span class="cd">}</span> <span class="ck">from</span> <span class="cs">'./Skills'</span><span class="cd">;</span>`,
+  `<span class="ck">import</span> <span class="cv">React</span> <span class="ck">from</span> <span class="cs">'react'</span><span class="cd">;</span>`,
+  `<span class="ck">import</span> <span class="cd">{</span> <span class="cv">SkillsPills</span> <span class="cd">}</span> <span class="ck">from</span> <span class="cs">'./SkillsPills'</span><span class="cd">;</span>`,
   ``,
-  `<span class="cc">// 12+ years crafting interfaces</span>`,
-  `<span class="ck">interface</span> <span class="cv">DevProps</span> <span class="cd">{</span>`,
-  `  <span class="ca">name</span><span class="cd">:</span>  <span class="cv">string</span><span class="cd">;</span>`,
-  `  <span class="ca">role</span><span class="cd">:</span>  <span class="cs">'frontend'</span><span class="cd">;</span>`,
-  `  <span class="ca">years</span><span class="cd">:</span> <span class="cn">12</span><span class="cd">;</span>`,
+  `<span class="cc">// SivaComponent.tsx</span>`,
+  `<span class="ck">type</span> <span class="cv">Role</span> <span class="cd">=</span> <span class="cs">'Frontend Developer'</span><span class="cd">;</span>`,
+  `<span class="ck">interface</span> <span class="cv">SivaProps</span> <span class="cd">{</span>`,
+  `  <span class="ca">name</span><span class="cd">:</span> <span class="cv">string</span><span class="cd">;</span>`,
+  `  <span class="ca">role</span><span class="cd">:</span> <span class="cv">Role</span><span class="cd">;</span>`,
+  `  <span class="ca">years</span><span class="cd">:</span> <span class="cv">number</span><span class="cd">;</span>`,
   `<span class="cd">}</span>`,
   ``,
-  `<span class="ck">const</span> <span class="cf">Siva</span> <span class="cd">= ({</span><span class="cv">name</span><span class="cd">}:</span><span class="cv">DevProps</span><span class="cd">) => {</span>`,
-  `  <span class="ck">const</span> <span class="cd">[</span><span class="cv">stack</span><span class="cd">] =</span> <span class="cf">useState</span><span class="cd">([</span>`,
-  `    <span class="cs">'React'</span><span class="cd">,</span> <span class="cs">'Angular'</span><span class="cd">,</span> <span class="cs">'Next.js'</span>`,
-  `  <span class="cd">]);</span>`,
+  `<span class="ck">const</span> <span class="cv">stack</span> <span class="cd">= [</span><span class="cs">'React'</span><span class="cd">,</span> <span class="cs">'Angular'</span><span class="cd">,</span> <span class="cs">'TypeScript'</span><span class="cd">,</span> <span class="cs">'Next.js'</span><span class="cd">] as const;</span>`,
   ``,
+  `<span class="ck">export</span> <span class="ck">function</span> <span class="cf">SivaComponent</span><span class="cd">({</span><span class="cv">name</span><span class="cd">,</span> <span class="cv">role</span><span class="cd">,</span> <span class="cv">years</span><span class="cd">}:</span> <span class="cv">SivaProps</span><span class="cd">) {</span>`,
   `  <span class="ck">return</span> <span class="cd">(</span>`,
-  `    <span class="ct">&lt;div</span> <span class="ca">className</span><span class="cd">=</span><span class="cs">"hero"</span><span class="ct">&gt;</span>`,
+  `    <span class="ct">&lt;section</span> <span class="ca">className</span><span class="cd">=</span><span class="cs">"hero-card"</span><span class="ct">&gt;</span>`,
   `      <span class="ct">&lt;h1&gt;</span><span class="cd">{</span><span class="cv">name</span><span class="cd">}</span><span class="ct">&lt;/h1&gt;</span>`,
-  `      <span class="ct">&lt;Skills</span> <span class="ca">list</span><span class="cd">={</span><span class="cv">stack</span><span class="cd">}</span> <span class="ct">/&gt;</span>`,
-  `    <span class="ct">&lt;/div&gt;</span>`,
+  `      <span class="ct">&lt;p&gt;</span><span class="cd">{</span><span class="cv">role</span><span class="cd">}</span> <span class="cd">|</span> <span class="cd">{</span><span class="cv">years</span><span class="cd">}+</span> <span class="cd">years</span><span class="ct">&lt;/p&gt;</span>`,
+  `      <span class="ct">&lt;SkillsPills</span> <span class="ca">items</span><span class="cd">={</span><span class="cv">stack</span><span class="cd">}</span> <span class="ct">/&gt;</span>`,
+  `    <span class="ct">&lt;/section&gt;</span>`,
   `  <span class="cd">);</span>`,
-  `<span class="cd">};</span>`,
-  ``,
-  `<span class="ck">export default</span> <span class="cf">Siva</span><span class="cd">;</span>`,
+  `<span class="cd">}</span>`,
 ];
 const cb=document.getElementById('codeBody');
 let li=0;
